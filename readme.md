@@ -378,27 +378,49 @@ Provides deterministic execution flow.
 
 ```mermaid
 graph LR
-  A[Data Generator] --> B[Bronze Layer]
-  B --> C[Silver Layer]
-  C --> D[Gold Layer]
-  D --> E[Security Views]
-
-  subgraph Bronze
-    B1[iot_telemetry_raw]
+  subgraph Landing["DBFS Landing Zone"]
+    A[IoT JSON Files] 
+    B[Production Parquet]
+    C[Maintenance CDC CSV]
+    D[Quality CSV]
+    E[Equipment Delta]
   end
 
-  subgraph Silver
-    C1[iot_telemetry]
-    C2[dq_violations]
+  subgraph Bronze["bronze_db"]
+    F[iot_telemetry_raw]
+    G[production_orders_raw]
+    H[maintenance_records_raw]
+    I[quality_inspection_raw]
+    J[equipment_master_raw]
   end
 
-  subgraph Gold
-    D1[dim_facility]
-    D2[dim_timestamp]
-    D3[fact_sensor_readings]
+  subgraph Silver["silver_db"]
+    K[iot_telemetry]
+    L[production_orders]
+    M[maintenance_records MERGE]
+    N[quality_inspection]
+    O[dim_equipment_history SCD2]
+    P[dq_violations]
   end
+
+  subgraph Gold["gold_db"]
+    Q[fact_sensor_readings]
+    R[fact_production_output]
+    S[fact_maintenance_events]
+    T[dim_equipment]
+    U[dim_facility]
+    V[dim_timestamp]
+    W[Security VIEWs]
+  end
+
+  A-->F-->K-->Q
+  B-->G-->L-->R
+  C-->H-->M-->S
+  D-->I-->N-->R
+  E-->J-->O-->T
+  K-->P
+  L-->P
 ```
-
 ---
 
 # 15. Potential Challenges & Mitigations
@@ -437,3 +459,4 @@ This implementation demonstrates:
 - Validation strategy  
 
 It reflects practical Data Engineering patterns suitable for enterprise-scale analytics platforms.
+
