@@ -1,6 +1,71 @@
 # Smart Manufacturing IoT Lakehouse — Hackathon Implementation
 ### Databricks Lakehouse | End-to-End Data Engineering Solution
 
+# 0. Environment Setup Instructions
+
+To run this project end-to-end inside Databricks Community Edition, follow the steps below.
+
+---
+
+## Step 1 — Extract Project Files
+
+- Download the project `.zip` file.
+- Extract all contents locally.
+- Ensure the extracted folder contains:
+  - 10 notebook files (`.ipynb`)
+  - 1 `README.md`
+
+---
+
+## Step 2 — Import into Databricks
+
+1. Log in to your Databricks workspace.
+2. Navigate to **Workspace**.
+3. Click **Import**.
+4. Upload:
+   - All 10 notebook files  
+   - The `README.md` file  
+
+After importing, ensure all notebooks are located in the same workspace folder.
+
+---
+
+## Step 3 — Open the Master Orchestration Notebook
+
+Open:
+
+`MASTER_Pipeline_Runner.ipynb`
+
+This notebook orchestrates the complete Bronze → Silver → Gold pipeline.
+
+---
+
+## Step 4 — Select a Cluster
+
+1. At the top-right of the notebook, click the **Compute / Cluster selector**.
+2. Select an active cluster.
+   - In Community Edition, choose the default available cluster.
+3. Wait until the cluster status shows **Running**.
+
+---
+
+## Step 5 — Execute the Pipeline
+
+- Click **Run All**.
+
+The pipeline will execute sequentially:
+
+1. Database setup  
+2. Data generation  
+3. Bronze ingestion  
+4. Silver cleansing & validation  
+5. Gold dimensional modeling  
+6. Security simulation  
+7. Optimization  
+8. Testing & validation  
+
+The execution will stop automatically if any notebook fails.
+
 ---
 
 ## Table of Contents
@@ -459,4 +524,5 @@ This implementation demonstrates:
 - Validation strategy  
 
 It reflects practical Data Engineering patterns suitable for enterprise-scale analytics platforms.
+
 
