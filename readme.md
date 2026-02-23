@@ -1,146 +1,148 @@
-# 🏭 Smart Manufacturing IoT Lakehouse  
-### End-to-End Data Engineering Platform (Databricks + Delta Lake)
+# Smart Manufacturing IoT Lakehouse — Hackathon Implementation
+### Databricks Lakehouse | End-to-End Data Engineering Solution
 
 ---
 
-## 📌 Table of Contents
-
-1. Project Overview  
-2. Problem Statement  
-3. Architecture Overview  
-4. Medallion Architecture Design  
-5. Data Sources & Synthetic Data Strategy  
-6. Folder & Notebook Structure  
-7. Phase-by-Phase Implementation  
-8. Data Quality Framework  
-9. Gold Layer Dimensional Model  
-10. Security & Governance Simulation  
-11. Performance Optimization Strategy  
-12. Testing & Validation Strategy  
-13. Orchestration Design  
-14. Architecture Diagram (Mermaid)  
-15. Key Engineering Decisions  
-16. Limitations  
-17. Future Enhancements  
+## Table of Contents
+1. Document Summary
+2. Implemented Architecture Overview
+3. Assumptions & Scope
+4. Architecture Overview
+5. Medallion Layer Definitions
+6. Folder & Notebook Structure
+7. Phase-by-Phase Implementation
+8. Data Schemas & Synthetic Data Strategy
+9. Pipeline Design: Bronze → Silver → Gold
+10. Security & Governance Simulation
+11. Performance Optimization Strategy
+12. Testing & Validation Plan
+13. Orchestration Design
+14. Architecture Diagram (Mermaid)
+15. Potential Challenges & Mitigations
+16. Best Practices Followed
 
 ---
 
-# 1️⃣ Project Overview
+# 1. Document Summary
 
-This project implements a governed, scalable **Smart Manufacturing IoT Lakehouse** using:
+## Problem Statement
 
-- Databricks
-- Delta Lake
-- PySpark
-- SQL
+Design and implement a governed, scalable Lakehouse platform for a smart manufacturing company capable of:
 
-The platform simulates a global manufacturing company processing:
+- Ingesting IoT telemetry and operational datasets  
+- Preserving raw data integrity  
+- Enforcing data quality rules  
+- Building a dimensional model for analytics  
+- Simulating row-level and column-level security  
+- Optimizing performance using Delta Lake  
 
-- IoT equipment telemetry
-- Production orders
-- Maintenance records
-- Quality inspection data
-- Equipment master data
-
-The architecture follows a strict **Medallion (Bronze → Silver → Gold)** pattern and includes:
-
-- Data Quality validation framework  
-- Dimensional modeling (Star Schema)  
-- Security simulation (Row-Level & Column-Level)  
-- Delta Lake performance optimization  
-- Full pipeline orchestration  
-- Validation & testing  
+This implementation focuses on Medallion architecture using Databricks.
 
 ---
 
-# 2️⃣ Problem Statement
+# 2. Implemented Architecture Overview
 
-A global manufacturing organization requires a Lakehouse platform that:
+Unlike the original enterprise plan (DLT, Unity Catalog, Azure integrations), this implementation uses:
 
-- Ingests multi-source operational data  
-- Preserves raw data integrity  
-- Enforces data quality standards  
-- Supports analytical reporting  
-- Implements access controls  
-- Optimizes performance for analytics workloads  
-- Provides reproducible orchestration  
+- Databricks workspace catalog: `sparkwars`
+- Schemas:
+  - `sparkwars.bronze`
+  - `sparkwars.silver`
+  - `sparkwars.gold`
+- Delta Lake for all storage
+- Notebook-based orchestration
+- SQL views for security simulation
 
-This project delivers that architecture using Databricks.
+No external Azure services are used.
 
 ---
 
-# 3️⃣ Architecture Overview
+# 3. Assumptions & Scope
 
-### Catalog Structure
+### A1 — Synthetic Data Generation
+All datasets are generated using PySpark and random functions inside Databricks.
 
-All objects are created under:
+### A2 — Batch Ingestion
+Data ingestion is implemented using batch processing (no Structured Streaming).
+
+### A3 — No CDC / SCD2
+Change Data Capture and SCD Type 2 logic are not implemented in this version.
+
+### A4 — Security Simulation
+Row-Level and Column-Level security are implemented via SQL views.
+
+---
+
+# 4. Architecture Overview
 
 ```
-sparkwars.bronze.*
-sparkwars.silver.*
-sparkwars.gold.*
+╔══════════════════════════════════════════════╗
+║          Synthetic Data Generator           ║
+╚══════════════════════════════════════════════╝
+                      │
+                      ▼
+╔══════════════════════════════════════════════╗
+║           BRONZE LAYER (sparkwars.bronze)   ║
+║  Raw Delta Tables (Append-Only)             ║
+╚══════════════════════════════════════════════╝
+                      │
+                      ▼
+╔══════════════════════════════════════════════╗
+║           SILVER LAYER (sparkwars.silver)   ║
+║  Cleansed + Validated + DQ Tagged           ║
+╚══════════════════════════════════════════════╝
+                      │
+                      ▼
+╔══════════════════════════════════════════════╗
+║           GOLD LAYER (sparkwars.gold)       ║
+║  Star Schema Dimensional Model              ║
+╚══════════════════════════════════════════════╝
+                      │
+                      ▼
+╔══════════════════════════════════════════════╗
+║         Security Views + Analytics          ║
+╚══════════════════════════════════════════════╝
 ```
 
-### Logical Data Flow
-
-1. Synthetic data generation
-2. Bronze ingestion (raw Delta tables)
-3. Silver cleansing + DQ enforcement
-4. Gold star schema modeling
-5. Security view creation
-6. Optimization
-7. Testing & validation
-
 ---
 
-# 4️⃣ Medallion Architecture Design
+# 5. Medallion Layer Definitions
 
----
+## Bronze Layer
 
-## 🟫 Bronze Layer — Raw Data Ingestion
+**Purpose:** Preserve source data as received.
 
-**Purpose:** Preserve source data exactly as received.
-
-### Characteristics:
+Characteristics:
 
 - Append-only Delta tables  
-- No business transformations  
-- Raw schema preservation  
-- Minimal metadata enrichment  
+- No transformation logic  
+- Raw schema retention  
+- Basic metadata columns  
 
-Example:
+Tables:
 
-```python
-df.write.format("delta") \
-  .mode("append") \
-  .saveAsTable("sparkwars.bronze.iot_telemetry_raw")
-```
-
-Bronze Tables:
-
-- iot_telemetry_raw
-- production_orders_raw
-- maintenance_records_raw
-- quality_inspection_raw
-- equipment_master_raw
+- `iot_telemetry_raw`
+- `production_orders_raw`
+- `maintenance_records_raw`
+- `quality_inspection_raw`
+- `equipment_master_raw`
 
 ---
 
-## 🟪 Silver Layer — Cleansing & Validation
+## Silver Layer
 
-**Purpose:** Enforce business rules and ensure data integrity.
+**Purpose:** Cleanse and validate data.
 
-### Implemented Transformations:
+Transformations include:
 
-- Null validation  
-- Range validation  
+- Null checks  
+- Range validations  
 - Required field enforcement  
-- DQ tagging columns  
-- Violation routing  
+- Data Quality tagging  
 - Referential integrity checks  
 - Pipeline run tracking  
 
-### DQ Columns Added
+Additional columns:
 
 ```
 _dq_passed
@@ -148,50 +150,34 @@ _violation_reason
 pipeline_run_id
 ```
 
-Records failing rules are written to:
-
-```
-sparkwars.silver.iot_telemetry_dq_violations
-```
-
-This ensures no silent data loss.
+Failed records are routed to dedicated DQ tables.
 
 ---
 
-## 🟨 Gold Layer — Dimensional Modeling
+## Gold Layer
 
-**Purpose:** Provide analytics-ready star schema.
+**Purpose:** Provide analytics-ready dimensional model.
 
-### Design Principles:
+Design:
 
-- Surrogate keys (IDENTITY)
-- Fact + Dimension separation
-- Join-ready model
-- Optimized for reporting queries
+- Surrogate keys (IDENTITY columns)  
+- Fact + Dimension separation  
+- Star schema modeling  
 
----
+Dimensions:
 
-# 5️⃣ Data Sources & Synthetic Data Strategy
+- dim_facility  
+- dim_timestamp  
 
-Data is generated using Spark-native random functions:
+Facts:
 
-- Random facility assignment
-- Random equipment types
-- Timestamp generation within recent range
-- Metric distributions:
-  - temperature
-  - vibration_x
-  - pressure
-  - rpm
-  - power consumption
-
-Data is written to Volume paths before Bronze ingestion.
-
-This allows full control over test scenarios.
+- fact_sensor_readings  
+- fact_production_output  
+- fact_maintenance_events  
 
 ---
 
-# 6️⃣ Folder & Notebook Structure
+# 6. Folder & Notebook Structure
 
 ```
 Create_Databases.ipynb
@@ -206,48 +192,42 @@ Testing_and_Validation.ipynb
 MASTER_Pipeline_Runner.ipynb
 ```
 
-Each notebook is modular and idempotent.
+Each notebook represents a specific architectural layer.
 
 ---
 
-# 7️⃣ Phase-by-Phase Implementation
+# 7. Phase-by-Phase Implementation
 
----
-
-## Phase 1 — Environment Setup
+## Phase 0 — Setup
 
 - Create catalog & schemas
 - Initialize Delta structure
 
----
+## Phase 1 — Data Generation
 
-## Phase 2 — Data Generation
+- Generate synthetic IoT telemetry
+- Generate production & maintenance data
+- Write to managed storage paths
 
-- Generate synthetic datasets
-- Write to managed volume paths
-
----
-
-## Phase 3 — Bronze Ingestion
+## Phase 2 — Bronze Ingestion
 
 - Load raw files
-- Append to Delta Bronze tables
+- Append to Bronze Delta tables
+- No transformation applied
 
----
+## Phase 3 — Silver Cleansing
 
-## Phase 4 — Silver Cleansing
+IoT Rules Implemented:
 
-IoT Silver Rules:
-
-| Rule | Validation |
-|------|-----------|
+| Rule | Logic |
+|------|-------|
 | device_id NOT NULL | Required |
 | event_timestamp NOT NULL | Required |
 | facility_id NOT NULL | Required |
-| temperature between -50 and 150 | Range |
-| vibration_x between 0 and 100 | Range |
+| temperature -50 to 150 | Range |
+| vibration_x 0 to 100 | Range |
 
-Referential Integrity Example:
+Referential integrity check example:
 
 ```sql
 SELECT qi.order_id
@@ -256,22 +236,9 @@ LEFT ANTI JOIN sparkwars.silver.production_orders po
 ON qi.order_id = po.order_id;
 ```
 
----
+## Phase 4 — Gold Modeling
 
-## Phase 5 — Gold Modeling
-
-### Dimensions
-
-- dim_facility (surrogate key)
-- dim_timestamp (2025–2027 pre-generated)
-
-### Facts
-
-- fact_sensor_readings
-- fact_production_output
-- fact_maintenance_events
-
-Example:
+Example Fact Table:
 
 ```sql
 CREATE TABLE sparkwars.gold.fact_sensor_readings (
@@ -286,21 +253,39 @@ CREATE TABLE sparkwars.gold.fact_sensor_readings (
 
 ---
 
-# 8️⃣ Data Quality Framework
+# 8. Data Schemas & Synthetic Data Strategy
 
-Features:
+IoT synthetic generation includes:
 
-- Rule-level tagging  
-- Pass/Fail classification  
-- Violation reason capture  
-- Dedicated DQ table  
-- Cross-table validation  
+- Random facility assignment
+- Random equipment types
+- Recent timestamps
+- Controlled metric distributions
+- Intentional anomalies for DQ testing
 
-This provides full traceability of rejected data.
+This allows validation of cleansing logic.
 
 ---
 
-# 9️⃣ Security & Governance Simulation
+# 9. Pipeline Design: Bronze → Silver → Gold
+
+```
+Data Generator
+    ↓
+Bronze (Raw Delta)
+    ↓
+Silver (Validated + DQ)
+    ↓
+Gold (Star Schema)
+    ↓
+Security Views
+```
+
+All writes use Delta Lake.
+
+---
+
+# 10. Security & Governance Simulation
 
 ## Row-Level Security (RLS)
 
@@ -315,21 +300,17 @@ WHERE facility_sk IN (
 );
 ```
 
----
-
 ## Column-Level Security (CLS)
-
-Masked technician IDs:
 
 ```sql
 CONCAT(LEFT(maintenance_technician_id, 5), '***')
 ```
 
-Separate views for analysts vs engineers.
+Separate views created for analysts and engineers.
 
 ---
 
-# 🔟 Performance Optimization Strategy
+# 11. Performance Optimization Strategy
 
 ### OPTIMIZE + ZORDER
 
@@ -346,21 +327,24 @@ delta.autoOptimize.autoCompact = true
 delta.targetFileSize = 134217728
 ```
 
-Goals:
+Objectives:
 
-- Reduce small files
-- Improve data skipping
-- Enhance join performance
+- Reduce small files  
+- Improve data skipping  
+- Optimize join performance  
 
 ---
 
-# 11️⃣ Testing & Validation Strategy
+# 12. Testing & Validation Plan
 
 Validation includes:
 
-- Source vs Bronze row count comparison  
-- Equipment consistency validation  
-- Structured warning messages  
+| Test | Purpose |
+|------|---------|
+| Source vs Bronze row count | Ensure ingestion integrity |
+| Schema validation | Schema consistency |
+| Equipment table match | Raw vs Bronze consistency |
+| DQ violation routing | Ensure failed records isolated |
 
 Example:
 
@@ -369,18 +353,16 @@ if bronze_count != source_count:
     print("WARNING: Row count mismatch")
 ```
 
-Testing is executed after pipeline completion.
-
 ---
 
-# 12️⃣ Orchestration Design
+# 13. Orchestration Design
 
-MASTER_Pipeline_Runner:
+`MASTER_Pipeline_Runner.ipynb`:
 
-- Generates UUID pipeline_run_id  
-- Executes notebooks sequentially  
-- Logs execution duration  
-- Stops on failure  
+- Generates UUID `pipeline_run_id`
+- Executes notebooks sequentially
+- Logs execution time
+- Stops on failure
 
 Example:
 
@@ -388,11 +370,11 @@ Example:
 dbutils.notebook.run("Silver_Layer_Cleansing_and_Validation", 0)
 ```
 
-This ensures reproducibility and control.
+Provides deterministic execution flow.
 
 ---
 
-# 13️⃣ Architecture Diagram (Mermaid)
+# 14. Architecture Diagram (Mermaid)
 
 ```mermaid
 graph LR
@@ -400,16 +382,14 @@ graph LR
   B --> C[Silver Layer]
   C --> D[Gold Layer]
   D --> E[Security Views]
-  D --> F[Analytics Queries]
 
   subgraph Bronze
     B1[iot_telemetry_raw]
-    B2[production_orders_raw]
   end
 
   subgraph Silver
     C1[iot_telemetry]
-    C2[DQ Violations]
+    C2[dq_violations]
   end
 
   subgraph Gold
@@ -421,46 +401,39 @@ graph LR
 
 ---
 
-# 14️⃣ Key Engineering Decisions
+# 15. Potential Challenges & Mitigations
+
+| Challenge | Mitigation |
+|------------|------------|
+| Single-node environment | Controlled dataset size |
+| No enterprise RBAC | SQL view simulation |
+| No streaming | Batch ingestion approach |
+| No CDC/SCD2 | Scope limited to core Medallion pattern |
+
+---
+
+# 16. Best Practices Followed
 
 - Strict Medallion separation  
-- Surrogate keys for dimensional modeling  
+- All tables stored as Delta  
+- Surrogate keys in Gold  
 - Dedicated DQ violation tables  
-- ZORDER for high-cardinality columns  
-- Notebook-based orchestration for deterministic execution  
+- ZORDER applied to high-cardinality columns  
+- Notebook-based modular design  
+- Re-runnable, idempotent execution  
 
 ---
 
-# 15️⃣ Limitations
+# Conclusion
 
-- CDC merge logic not implemented  
-- SCD Type 2 not implemented  
-- Structured Streaming not used  
-- Fine-grained Unity Catalog RBAC not enabled  
+This implementation demonstrates:
 
----
-
-# 16️⃣ Future Enhancements
-
-- Implement MERGE-based CDC  
-- Add SCD Type 2 versioning  
-- Enable Change Data Feed  
-- Introduce streaming ingestion  
-- Add ML anomaly detection  
-- Integrate BI dashboard layer  
-
----
-
-# 🎯 Conclusion
-
-This project demonstrates:
-
-- End-to-end Lakehouse architecture  
-- Data quality engineering  
-- Dimensional modeling best practices  
+- Lakehouse architecture design  
+- Data Quality engineering  
+- Dimensional modeling  
 - Security simulation  
 - Delta optimization  
-- Orchestrated pipelines  
-- Structured validation  
+- Pipeline orchestration  
+- Validation strategy  
 
-It reflects production-oriented Data Engineering design patterns suitable for enterprise environments.
+It reflects practical Data Engineering patterns suitable for enterprise-scale analytics platforms.
